@@ -53,24 +53,27 @@ owed = {
 
 # Simplify the transactions by paying back the ones owed the most first
 def settle_debts(owed):
-    # Separate into those who owe money and those who should be reimbursed
     owe_money = {person: amount for person, amount in owed.items() if amount > 0}
     to_be_paid = {person: -amount for person, amount in owed.items() if amount < 0}
     
     transactions = []
+    total_owed = sum(owe_money.values())
+    total_to_be_paid = sum(to_be_paid.values())
+    
+    if total_owed != total_to_be_paid:
+        # Calculate how much extra is owed to external parties (e.g. vendor or apartment)
+        extra_amount = total_owed - total_to_be_paid
+        st.write(f"An extra ${extra_amount:.2f} is owed to external parties (e.g., apartment or vendor).")
     
     # Iterate over a copy of the items in to_be_paid to avoid modifying the dict while iterating
     for person_who_owes, amount_owed in owe_money.items():
-        for person_to_pay, amount_to_receive in list(to_be_paid.items()):  # Create a copy here
+        for person_to_pay, amount_to_receive in list(to_be_paid.items()):
             if amount_owed == 0:
                 break
-            # Pay the smaller of the two amounts
             payment_amount = min(amount_owed, amount_to_receive)
             transactions.append((person_who_owes, person_to_pay, payment_amount))
-            # Update the balances
             owe_money[person_who_owes] -= payment_amount
             to_be_paid[person_to_pay] -= payment_amount
-            # If the person has been fully reimbursed, remove them from to_be_paid
             if to_be_paid[person_to_pay] == 0:
                 del to_be_paid[person_to_pay]
     
@@ -84,3 +87,10 @@ st.write("### Payment Instructions to Minimize Venmo Transactions")
 for transaction in transactions:
     payer, payee, amount = transaction
     st.write(f"**{payer}** should pay **{payee}**: ${amount:.2f}")
+
+# Check if all amounts balance out to 0
+total_balance = sum(owed.values())
+if abs(total_balance) < 0.01:  # Small tolerance for floating-point issues
+    st.write("All payments are balanced, and no extra amounts are owed.")
+else:
+    st.write(f"There is an imbalance of ${total_balance:.2f}, which may indicate that someone owes money to an external party (e.g., the apartment or a vendor).")
